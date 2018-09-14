@@ -75,23 +75,30 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         mEditReceive = (TextView) findViewById(R.id.receiveString);
-        mEditSend = (EditText)findViewById(R.id.sendString);
+      //  mEditSend = (EditText)findViewById(R.id.sendString);
         mButtonSend = (Button)findViewById(R.id.sendButton);
 
-        mButtonSend.setOnClickListener(new OnClickListener(){
+        // 문자열 전송하는 함수(쓰레드 사용 x)
+              /*  sendData(mEditSend.getText().toString());
+                mEditSend.setText("");*/
 
-            @Override
-            public void onClick(View v) {
-                // 문자열 전송하는 함수(쓰레드 사용 x)
-                sendData(mEditSend.getText().toString());
-                mEditSend.setText("");
-            }
-        });
+
 
         // 블루투스 활성화 시키는 메소드
         checkBluetooth();
       //  beginListenForData();
 
+    }
+
+
+    public void SendButton(View view){ //--------------------적립
+        String UID = mNFC;
+        //String password = PasswordEt.getText().toString();
+        String type = "Send";
+
+        BackgroundWork backgroundWork = new BackgroundWork((this));
+        backgroundWork.execute(type, UID);
+        Log.v("chanho","send :   "+UID);
     }
 
 
@@ -162,6 +169,7 @@ public class MainActivity extends Activity {
     void beginListenForData() {
         Log.v("chanho","함수실행.");
         final Handler handler = new Handler(Looper.getMainLooper());
+        final Handler handler1 = new Handler(Looper.getMainLooper());
         Log.v("chanho","수신 함수 실행.");
         readBufferPosition = 0;                 // 버퍼 내 수신 문자 저장 위치.
         readBuffer = new byte[1024];            // 수신 버퍼.
@@ -178,6 +186,7 @@ public class MainActivity extends Activity {
                 // isInterrupted() 메소드를 사용하여 멈추었을 경우 반복문을 나가서 스레드가 종료하게 된다.
                 Log.v("chanho","run돌아감");
                 while(!Thread.currentThread().isInterrupted()) {
+
                     try {
                         // InputStream.available() : 다른 스레드에서 blocking 하기 전까지 읽은 수 있는 문자열 개수를 반환함.
                         int byteAvailable = mInputStream.available();   // 수신 데이터 확인
@@ -211,14 +220,19 @@ public class MainActivity extends Activity {
                                 //    final String data1 = new String(newencodeBytes, "UTF-8");
                                     Log.v("chanho", String.valueOf("data : "+data+"  newlength :  "+newencodeBytes.length+newencodeBytes[0]+newencodeBytes[1]+newencodeBytes[2]+newencodeBytes[3]));
                                     readBufferPosition = 0;
+                                    final AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
+                                    alert.setTitle("사용자 NFC UID");
 
                                     handler.post(new Runnable(){
                                         // 수신된 문자열 데이터에 대한 처리.
                                         @Override
                                         public void run() {
                                             // mStrDelimiter = '\n';
+                                            alert.setMessage(mNFC);
+                                            alert.setPositiveButton("확인",null);
                                             mEditReceive.setText(mNFC);
                                             Log.v("chanho",mNFC);
+                                            alert.show();
                                         }
 
                                     });
