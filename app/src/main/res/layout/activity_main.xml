@@ -1,0 +1,24 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+     >
+<EditText
+    android:id="@+id/sendString"
+    android:layout_width="match_parent"
+    android:layout_height="40dp" />
+
+<Button
+    android:id="@+id/sendButton"
+    android:layout_width="match_parent"
+    android:layout_height="40dp"
+    android:text="SEND"/>
+
+    <TextView
+        android:id="@+id/receiveString"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:hint="문자 수신"/>
+
+</LinearLayout>
