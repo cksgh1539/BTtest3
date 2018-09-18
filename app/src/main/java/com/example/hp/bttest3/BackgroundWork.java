@@ -29,15 +29,17 @@ public class BackgroundWork extends AsyncTask<String,Void,String> {
     BackgroundWork (Context ctx){
         context = ctx;
     }
-    String UID;
+    String UID,Deposit;
 
     @Override
     protected String doInBackground(String... voids) {
         String type = voids[0];
-        String Send_url = "http://220.67.230.12/web_147/Test_Send.php";
+        String Send_url = "http://220.67.230.12/web_147/change/Test_Send.php";
         if(type.equals("Send")) {
             try {
                 UID = voids[1];
+                Deposit = voids[2];
+                Log.v("chanho", "UID : "+ UID+" Deposit : "+ Deposit);
                 URL url = new URL(Send_url);
                 HttpURLConnection httpURLConnection = (HttpURLConnection)url.openConnection();
                 httpURLConnection.setRequestMethod("POST");
@@ -45,7 +47,8 @@ public class BackgroundWork extends AsyncTask<String,Void,String> {
                 httpURLConnection.setDoInput(true);
                 OutputStream outputStream = httpURLConnection.getOutputStream();
                 BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(outputStream, "UTF-8"));
-                String post_data = URLEncoder.encode("uid","UTF-8")+"="+URLEncoder.encode(UID,"UTF-8");
+                String post_data = URLEncoder.encode("uid","UTF-8")+"="+URLEncoder.encode(UID,"UTF-8")+"&"+
+                        URLEncoder.encode("deposit","UTF-8")+"="+URLEncoder.encode(Deposit,"UTF-8");
                 bufferedWriter.write(post_data);
                 bufferedWriter.flush();
                 bufferedWriter.close();
@@ -81,11 +84,12 @@ public class BackgroundWork extends AsyncTask<String,Void,String> {
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     @Override
     protected void onPostExecute(String result) {
+
         alertDialog = new AlertDialog.Builder(context);
         alertDialog.setPositiveButton("확인", null);
         Log.v("chanho","if전"+result);
         alertDialog.setMessage(result);
-        if(result.equals("abc")) {
+        if(result.equals("적립완료")) {
 
 
             Log.v("chanho", "result" + result);

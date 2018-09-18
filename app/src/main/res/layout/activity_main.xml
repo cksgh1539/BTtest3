@@ -17,6 +17,6 @@
         android:layout_width="match_parent"
         android:layout_height="200dp"
         android:textSize="30dp"
-        android:hint="문자 수신"/>
+        android:hint="투입 금액"/>
 
 </LinearLayout>

@@ -21,9 +21,11 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.RequiresApi;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -54,13 +56,15 @@ public class MainActivity extends Activity {
     InputStream mInputStream = null;
     String mStrDelimiter = "\n";
     char mCharDelimiter =  '\n';
-    String mNFC;
+    int int_coin;
+    String mNFC,mCoin,UID;
 
 
 
     Thread mWorkerThread = null;
+    Thread mWorkerThread2 = null;
     byte[] readBuffer;
-    int readBufferPosition;
+    int readBufferPosition = 0;
 
 
     EditText  mEditSend;
@@ -86,19 +90,27 @@ public class MainActivity extends Activity {
 
         // 블루투스 활성화 시키는 메소드
         checkBluetooth();
+
       //  beginListenForData();
 
     }
 
 
     public void SendButton(View view){ //--------------------적립
-        String UID = mNFC;
+
+        sendData();
+        UID = mNFC;
+        String Deposit = String.valueOf(int_coin);
         //String password = PasswordEt.getText().toString();
         String type = "Send";
 
         BackgroundWork backgroundWork = new BackgroundWork((this));
-        backgroundWork.execute(type, UID);
-        Log.v("chanho","send :   "+UID);
+        backgroundWork.execute(type, UID,Deposit);
+        Log.v("chanho",mNFC+"      send :   "+UID+"    money"+Deposit);
+        readBufferPosition = 0;
+        int_coin =0;
+        mEditReceive.setText(String.valueOf(int_coin));
+
     }
 
 
@@ -119,14 +131,14 @@ public class MainActivity extends Activity {
     }
 
     // 문자열 전송하는 함수(쓰레드 사용 x)
-    void sendData(String msg) {
-        msg += mStrDelimiter;  // 문자열 종료표시 (\n)
+    void sendData() {
+        String msg= "r"+mStrDelimiter;  // 문자열 종료표시 (\n)
         try{
             // getBytes() : String을 byte로 변환
             // OutputStream.write : 데이터를 쓸때는 write(byte[]) 메소드를 사용함. byte[] 안에 있는 데이터를 한번에 기록해 준다.
             mOutputStream.write(msg.getBytes());  // 문자열 전송.
             Log.v("chanho","문자열 전송.");
-            beginListenForData();
+          //  beginListenForData();
         }catch(Exception e) {  // 문자열 전송 도중 오류가 발생한 경우
             Toast.makeText(getApplicationContext(), "데이터 전송중 오류가 발생", Toast.LENGTH_LONG).show();
             finish();  // App 종료
@@ -167,82 +179,123 @@ public class MainActivity extends Activity {
 
     // 데이터 수신(쓰레드 사용, 수신된 메시지를 계속 검사함)
     void beginListenForData() {
-        Log.v("chanho","함수실행.");
+        Log.v("chanho", "함수실행.");
         final Handler handler = new Handler(Looper.getMainLooper());
         final Handler handler1 = new Handler(Looper.getMainLooper());
-        Log.v("chanho","수신 함수 실행.");
-        readBufferPosition = 0;                 // 버퍼 내 수신 문자 저장 위치.
-        readBuffer = new byte[1024];            // 수신 버퍼.
+        Log.v("chanho", "수신 함수 실행.");
+                   // 버퍼 내 수신 문자 저장 위치.
+             // 수신 버퍼.
+
+        readBufferPosition = 0;
+        readBuffer = new byte[1024];
         final short[] newBuffer = new short[200];
+        int_coin = 0;
 
 
-        // 문자열 수신 쓰레드.
-        mWorkerThread = new Thread(new Runnable()
-        {
+
+        // NFC 문자열 수신 쓰레드.
+        mWorkerThread = new Thread(new Runnable() {
+            @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
             @Override
             public void run() {
+
                 // interrupt() 메소드를 이용 스레드를 종료시키는 예제이다.
                 // interrupt() 메소드는 하던 일을 멈추는 메소드이다.
                 // isInterrupted() 메소드를 사용하여 멈추었을 경우 반복문을 나가서 스레드가 종료하게 된다.
-                Log.v("chanho","run돌아감");
-                while(!Thread.currentThread().isInterrupted()) {
+                Log.v("chanho", "run돌아감");
+                while (!Thread.currentThread().isInterrupted()) {
 
                     try {
+
                         // InputStream.available() : 다른 스레드에서 blocking 하기 전까지 읽은 수 있는 문자열 개수를 반환함.
                         int byteAvailable = mInputStream.available();   // 수신 데이터 확인
-                        if(byteAvailable > 0) {// 데이터가 수신된 경우.
-                            Log.v("chanho","수신됬다."+byteAvailable);
+                        if (byteAvailable > 0) {// 데이터가 수신된 경우.
+                            Log.v("chanho", "수신됬다." + byteAvailable);
                             byte[] packetBytes = new byte[byteAvailable];
                             // read(buf[]) : 입력스트림에서 buf[] 크기만큼 읽어서 저장 없을 경우에 -1 리턴.
                             mInputStream.read(packetBytes);
-                            for(int i=0; i<byteAvailable; i++) {
+                            for (int i = 0; i < byteAvailable; i++) {
                                 byte b = packetBytes[i];
-                                short nValue = (short)(b & 0xFF);
-                                Log.v("chanho","for문     "+b +"       "+ nValue);
-                                if(b == mCharDelimiter) {
-                                    Log.v("chanho","short배열     "+ newBuffer);
-                                    Log.v("chanho","if문");
+                                short nValue = (short) (b & 0xFF);
+                                Log.v("chanho", "for문     " + b + "       " + nValue + "");
+                                if (b == mCharDelimiter) {
+                                    Log.v("chanho", "short배열     " + newBuffer);
+                                    Log.v("chanho", "if문");
                                     byte[] encodedBytes = new byte[readBufferPosition];
                                     final short[] newencodeBytes = new short[readBufferPosition];
-                                    Log.v("chanho", String.valueOf("encodedBytes:  "+encodedBytes +"   newencode :   "+newencodeBytes));
+                                    Log.v("chanho", String.valueOf("encodedBytes:  " + encodedBytes + "   newencode :   " + newencodeBytes));
                                     //  System.arraycopy(복사할 배열, 복사시작점, 복사된 배열, 붙이기 시작점, 복사할 개수)
                                     //  readBuffer 배열을 처음 부터 끝까지 encodedBytes 배열로 복사.
                                     System.arraycopy(readBuffer, 0, encodedBytes, 0, encodedBytes.length);
                                     System.arraycopy(newBuffer, 0, newencodeBytes, 0, newencodeBytes.length);
 
-                                    mNFC=String.valueOf(newencodeBytes[0]);
 
-                                    for(int j=1; j<newencodeBytes.length; j++){
-                                        mNFC = mNFC+String.valueOf(newencodeBytes[j]);
+                                  if(newencodeBytes.length < 5) {
+                                      mNFC = String.valueOf(newencodeBytes[0]);
+                                      for (int j = 1; j < newencodeBytes.length; j++) {
+                                          mNFC = mNFC + String.valueOf(newencodeBytes[j]);
+                                          UID = mNFC;
+                                          Log.v("chanho", "NFC :  "+mNFC+"  UID : "+UID);
+                                      }
+                                  }
+                                    Log.v("chanho", "NFC :  "+mNFC+"  UID : "+UID);
+
+                                    mCoin = "";
+
+                                    if(newencodeBytes.length >4) {
+                                        for (int j = 4; j < newencodeBytes.length; j++) {
+                                            mCoin = String.valueOf(newencodeBytes[j]);
+                                        }
                                     }
 
+                                    if(mCoin == "1"){
+                                        int_coin += 500;
+                                    }else if(mCoin == "2"){
+                                        int_coin += 100;
+                                    }else if(mCoin == "3"){
+                                        int_coin += 50;
+                                    }
+
+
                                     final String data = new String(encodedBytes, "UTF-8");
-                                //    final String data1 = new String(newencodeBytes, "UTF-8");
-                                    Log.v("chanho", String.valueOf("data : "+data+"  newlength :  "+newencodeBytes.length+newencodeBytes[0]+newencodeBytes[1]+newencodeBytes[2]+newencodeBytes[3]));
-                                    readBufferPosition = 0;
+                                    //    final String data1 = new String(newencodeBytes, "UTF-8");
+                                    Log.v("chanho", String.valueOf("data : " + data + "  newlength :  " + newencodeBytes.length+"  " + newencodeBytes[0] + newencodeBytes[1] + newencodeBytes[2] + newencodeBytes[3]));
+                                   // Log.v("chanho", String.valueOf("data : " + data + "  newlength :  " + newencodeBytes.length + newencodeBytes[0] + newencodeBytes[1] + newencodeBytes[2] + newencodeBytes[3]));
+
+
                                     final AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
-                                    alert.setTitle("사용자 NFC UID");
+                                 if(newencodeBytes.length<=4) {
+                                     alert.setTitle("사용자 NFC UID");
 
-                                    handler.post(new Runnable(){
-                                        // 수신된 문자열 데이터에 대한 처리.
-                                        @Override
-                                        public void run() {
-                                            // mStrDelimiter = '\n';
-                                            alert.setMessage(mNFC);
-                                            alert.setPositiveButton("확인",null);
-                                            mEditReceive.setText(mNFC);
-                                            Log.v("chanho",mNFC);
-                                            alert.show();
-                                        }
+                                     handler.post(new Runnable() {
+                                         // 수신된 문자열 데이터에 대한 처리.
+                                         @Override
+                                         public void run() {
+                                             // mStrDelimiter = '\n';
+                                             alert.setMessage(mNFC);
+                                             alert.setPositiveButton("확인",null);
+                                             alert.show();
+                                                     Log.v("chanho", mNFC+" abc "+mCoin);
 
-                                    });
-                                }
-                                else {
+                                         }
+                                     });
+                                 }else{  // 길이가 5이상이면
+                                     handler.post(new Runnable() {
+                                         @Override
+                                         public void run() {
+                                             mEditReceive.setText(String.valueOf(int_coin));
+                                         }
+                                     });
+
+                                 }
+
+
+                                } else {
                                     readBuffer[readBufferPosition] = b;
                                     newBuffer[readBufferPosition++] = nValue;
                                 }
                             }
-                        }else{
+                        } else {
                            /* handler1.post(new Runnable() {
                                 @Override
                                 public void run() {
@@ -260,11 +313,15 @@ public class MainActivity extends Activity {
                         });*/
                         finish();            // App 종료.
                     }
-                }
-            }
+
+
+                } // while
+            } //run
 
         });
+
         mWorkerThread.start();
+
     }
 
     // 블루투스 지원하며 활성 상태인 경우.
