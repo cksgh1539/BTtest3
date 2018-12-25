@@ -3,20 +3,60 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-     >
 
-<Button
-    android:id="@+id/sendButton"
+    android:background="@drawable/test_background"
+     >
+<LinearLayout
     android:layout_width="match_parent"
-    android:layout_height="40dp"
-    android:text="적립"
-    android:onClick="SendButton"/>
+    android:layout_height="300dp">
+
+    <TextView
+        android:id="@+id/receiveName"
+        android:layout_width="match_parent"
+        android:layout_height="500dp"
+        android:gravity="center"
+        android:hint="사용자 이름"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#FFFFFF"
+        android:textSize="50dp" />
+
+</LinearLayout>
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="300dp">
 
     <TextView
         android:id="@+id/receiveString"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
-        android:textSize="30dp"
-        android:hint="투입 금액"/>
+        android:layout_height="500dp"
+        android:gravity="center"
+        android:hint="Drop the bit~! :D"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#FFFFFF"
+        android:textSize="60dp"
+        android:paddingBottom="100dp"/>
+
+</LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="500dp"
+        android:gravity="center"
+        android:layout_gravity="bottom"
+       >
+
+        <Button
+            android:id="@+id/sendButton"
+            android:onClick="SendButton"
+            android:layout_width="300dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="적립"
+            android:background="@drawable/z_login_button"
+            />
+
+    </LinearLayout>
+
 
 </LinearLayout>

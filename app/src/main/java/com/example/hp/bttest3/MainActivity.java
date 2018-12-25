@@ -1,12 +1,22 @@
 package com.example.hp.bttest3;
 // 1.JAVA I/O중 바이트 스트림에 관련된 최상위 클래스인 InputStream, OutputStream (영문1,한글 2바이트)
 
-import java.io.InputStream;import java.io.OutputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 /** 2. JAVA 에서는 배열보다는 Util 패키지의 List,Set,Map 인터페이스를 주요 사용한다.
  배열은 같은 타입만 저장 가능하지만, 위의 인터페이스는 서로 다른 타입을 같은 List 안에 저장할 수 있다
  */
 
+import java.io.OutputStreamWriter;
 import java.lang.reflect.Array;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;import java.util.Set;
@@ -21,6 +31,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -34,6 +45,9 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.w3c.dom.Text;
 
 
@@ -59,19 +73,16 @@ public class MainActivity extends Activity {
     int int_coin;
     String mNFC,mCoin,UID;
 
-
-
     Thread mWorkerThread = null;
     Thread mWorkerThread2 = null;
     byte[] readBuffer;
     int readBufferPosition = 0;
 
-
     EditText  mEditSend;
-    TextView mEditReceive;
+    TextView mEditReceive,mReceiveName;
     Button mButtonSend;
 
-
+    php task;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,7 +90,7 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         mEditReceive = (TextView) findViewById(R.id.receiveString);
-      //  mEditSend = (EditText)findViewById(R.id.sendString);
+        mReceiveName = (TextView) findViewById(R.id.receiveName);
         mButtonSend = (Button)findViewById(R.id.sendButton);
 
         // 문자열 전송하는 함수(쓰레드 사용 x)
@@ -109,7 +120,8 @@ public class MainActivity extends Activity {
         Log.v("chanho",mNFC+"      send :   "+UID+"    money"+Deposit);
         readBufferPosition = 0;
         int_coin =0;
-        mEditReceive.setText(String.valueOf(int_coin));
+        mEditReceive.setText("Drop the Bit~! :D");
+        mReceiveName.setText("안녕하세요!!");
 
     }
 
@@ -210,6 +222,7 @@ public class MainActivity extends Activity {
                         // InputStream.available() : 다른 스레드에서 blocking 하기 전까지 읽은 수 있는 문자열 개수를 반환함.
                         int byteAvailable = mInputStream.available();   // 수신 데이터 확인
                         if (byteAvailable > 0) {// 데이터가 수신된 경우.
+
                             Log.v("chanho", "수신됬다." + byteAvailable);
                             byte[] packetBytes = new byte[byteAvailable];
                             // read(buf[]) : 입력스트림에서 buf[] 크기만큼 읽어서 저장 없을 경우에 -1 리턴.
@@ -252,7 +265,7 @@ public class MainActivity extends Activity {
                                         int_coin += 500;
                                     }else if(mCoin == "2"){
                                         int_coin += 100;
-                                    }else if(mCoin == "3"){
+                                    }else if(mCoin == "3b"){
                                         int_coin += 50;
                                     }
 
@@ -262,7 +275,6 @@ public class MainActivity extends Activity {
                                     Log.v("chanho", String.valueOf("data : " + data + "  newlength :  " + newencodeBytes.length+"  " + newencodeBytes[0] + newencodeBytes[1] + newencodeBytes[2] + newencodeBytes[3]));
                                    // Log.v("chanho", String.valueOf("data : " + data + "  newlength :  " + newencodeBytes.length + newencodeBytes[0] + newencodeBytes[1] + newencodeBytes[2] + newencodeBytes[3]));
 
-
                                     final AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
                                  if(newencodeBytes.length<=4) {
                                      alert.setTitle("사용자 NFC UID");
@@ -271,19 +283,24 @@ public class MainActivity extends Activity {
                                          // 수신된 문자열 데이터에 대한 처리.
                                          @Override
                                          public void run() {
+                                             String type = "NFC";
                                              // mStrDelimiter = '\n';
                                              alert.setMessage(mNFC);
                                              alert.setPositiveButton("확인",null);
                                              alert.show();
+
                                                      Log.v("chanho", mNFC+" abc "+mCoin);
 
                                          }
                                      });
+                                     task = new php();
+                                     String NFC_URL = "http://220.67.230.12/web_147/change/user_name.php"; //사용자 이름 가져오기
+                                     task.execute(NFC_URL,mNFC);
                                  }else{  // 길이가 5이상이면
                                      handler.post(new Runnable() {
                                          @Override
                                          public void run() {
-                                             mEditReceive.setText(String.valueOf(int_coin));
+                                             mEditReceive.setText(String.valueOf(int_coin+"원" ));
                                          }
                                      });
 
@@ -448,5 +465,74 @@ public class MainActivity extends Activity {
                 break;
         }
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    private class php extends AsyncTask<String, Void, String> { //---------------로그인 할 때 받은 아이디 , 패스워드 php에서 비교
+
+        @Override
+        protected String doInBackground(String... urls) {
+
+            try {
+                Log.v("chanho","try중");
+                String UID = urls[1];
+                URL url = new URL(urls[0]);
+                HttpURLConnection httpURLConnection = (HttpURLConnection)url.openConnection();
+                httpURLConnection.setRequestMethod("POST");
+                httpURLConnection.setDoOutput(true);
+                httpURLConnection.setDoInput(true);
+                OutputStream outputStream = httpURLConnection.getOutputStream();
+                BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(outputStream, "UTF-8"));
+                String post_data = URLEncoder.encode("uid","UTF-8")+"="+URLEncoder.encode(UID,"UTF-8");
+                bufferedWriter.write(post_data);
+                bufferedWriter.flush();
+                bufferedWriter.close();
+                outputStream.close();
+                InputStream inputStream = httpURLConnection.getInputStream();
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream,"UTF-8"));
+                String result = "";
+                String line;
+
+                while((line = bufferedReader.readLine())!=null){
+                    result += line;
+                }
+                bufferedReader.close();
+                httpURLConnection.disconnect();
+                return result;
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+        protected void onPostExecute(String str) { //-----------서버에서 총 금액 및 이름 받기
+
+            Log.v("chanho","postExecute");
+            String name="";
+
+            Log.v("chanho","str"+str);
+
+            try{
+                Log.v("chanho","post try시작");
+                JSONObject root = new JSONObject(String.valueOf(str));
+                Log.v("chanho","root"+root);
+                JSONArray ja = root.getJSONArray("results");
+                Log.v("chanho","array : "+ja);
+                Log.v("chanho","array length : "+ja.length());
+                for(int i=0; i<ja.length(); i++){
+                    JSONObject jo = ja.getJSONObject(i);
+                    name = jo.getString("name");
+                    Log.v("chanho", " name : "+name );
+                }
+
+            }catch(JSONException e){
+                Log.v("chanho","오류");
+                e.printStackTrace();
+            }
+
+            mReceiveName.setText("안녕하세요! " +name+"님");
+
+        }
     }
 }
